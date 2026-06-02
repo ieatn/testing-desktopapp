@@ -116,6 +116,23 @@ function persistWindowState(window) {
   }
 }
 
+function countRemainingTodos(todos) {
+  if (!Array.isArray(todos)) return 0
+  return todos.filter((todo) => !todo.done).length
+}
+
+function updateDockBadge(remainingCount) {
+  if (process.platform === 'darwin') {
+    if (!app.dock) return
+    app.dock.setBadge(remainingCount > 0 ? String(remainingCount) : '')
+    return
+  }
+
+  if (process.platform === 'win32' || process.platform === 'linux') {
+    app.setBadgeCount(remainingCount > 0 ? remainingCount : 0)
+  }
+}
+
 async function createWindow() {
   const settings = await loadSettings()
   const isDark = resolveThemeDark(settings.theme)
@@ -173,15 +190,21 @@ app.whenReady().then(async () => {
     try {
       const data = await readFile(getTodosPath(), 'utf-8')
       const parsed = JSON.parse(data)
-      return Array.isArray(parsed) ? parsed : []
+      const todos = Array.isArray(parsed) ? parsed : []
+      updateDockBadge(countRemainingTodos(todos))
+      return todos
     } catch (error) {
-      if (error.code === 'ENOENT') return []
+      if (error.code === 'ENOENT') {
+        updateDockBadge(0)
+        return []
+      }
       throw error
     }
   })
 
   ipcMain.handle('todos:save', async (_, todos) => {
     await writeFile(getTodosPath(), JSON.stringify(todos, null, 2), 'utf-8')
+    updateDockBadge(countRemainingTodos(todos))
   })
 
   ipcMain.handle('todos:path', () => getTodosPath())
