@@ -5,7 +5,14 @@ const api = {
   loadTodos: () => ipcRenderer.invoke('todos:load'),
   saveTodos: (todos) => ipcRenderer.invoke('todos:save', todos),
   getTodosPath: () => ipcRenderer.invoke('todos:path'),
-  revealTodos: () => ipcRenderer.invoke('todos:reveal')
+  revealTodos: () => ipcRenderer.invoke('todos:reveal'),
+  getSystemDark: () => ipcRenderer.invoke('theme:system-dark'),
+  setWindowBackground: (isDark) => ipcRenderer.invoke('theme:window-bg', isDark),
+  onSystemThemeChange: (callback) => {
+    const handler = (_, isDark) => callback(isDark)
+    ipcRenderer.on('theme:updated', handler)
+    return () => ipcRenderer.removeListener('theme:updated', handler)
+  }
 }
 
 if (process.contextIsolated) {

@@ -1,34 +1,44 @@
-:root {
-  --ev-c-white: #ffffff;
-  --ev-c-white-soft: #f8f8f8;
-  --ev-c-white-mute: #f2f2f2;
+:root,
+[data-theme='light'] {
+  color-scheme: light;
 
-  --ev-c-black: #1b1b1f;
-  --ev-c-black-soft: #222222;
-  --ev-c-black-mute: #282828;
-
-  --ev-c-gray-1: #515c67;
-  --ev-c-gray-2: #414853;
-  --ev-c-gray-3: #32363f;
-
-  --ev-c-text-1: rgba(255, 255, 245, 0.86);
-  --ev-c-text-2: rgba(235, 235, 245, 0.6);
-  --ev-c-text-3: rgba(235, 235, 245, 0.38);
-
-  --ev-button-alt-border: transparent;
-  --ev-button-alt-text: var(--ev-c-text-1);
-  --ev-button-alt-bg: var(--ev-c-gray-3);
-  --ev-button-alt-hover-border: transparent;
-  --ev-button-alt-hover-text: var(--ev-c-text-1);
-  --ev-button-alt-hover-bg: var(--ev-c-gray-2);
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-hover: #f0f0f2;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-tertiary: #aeaeb2;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --accent-soft: rgba(0, 113, 227, 0.12);
+  --danger: #ff3b30;
+  --danger-hover: rgba(255, 59, 48, 0.1);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --check-border: #c7c7cc;
+  --check-done: #34c759;
 }
 
-:root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
+[data-theme='dark'] {
+  color-scheme: dark;
 
-  --color-text: var(--ev-c-text-1);
+  --bg: #1c1c1e;
+  --surface: #2c2c2e;
+  --surface-hover: #3a3a3c;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text: #f5f5f7;
+  --text-secondary: #98989d;
+  --text-tertiary: #636366;
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --danger: #ff453a;
+  --danger-hover: rgba(255, 69, 58, 0.15);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.24);
+  --check-border: #48484a;
+  --check-done: #30d158;
 }
 
 *,
@@ -45,23 +55,25 @@ ul {
 
 body {
   min-height: 100vh;
-  color: var(--color-text);
-  background: var(--color-background);
-  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
   font-family:
-    Inter,
     -apple-system,
     BlinkMacSystemFont,
+    'SF Pro Text',
     'Segoe UI',
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
-    'Fira Sans',
-    'Droid Sans',
-    'Helvetica Neue',
+    system-ui,
     sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+button,
+input {
+  font: inherit;
 }

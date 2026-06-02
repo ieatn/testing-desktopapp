@@ -1,12 +1,28 @@
 import { useEffect, useState } from 'react'
+import ThemeToggle from './ThemeToggle'
+import { useTheme } from '../hooks/useTheme'
 
 const LEGACY_STORAGE_KEY = 'todos'
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 6L5 8.5L9.5 3.5"
+        stroke="white"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export default function TodoApp() {
+  const { preference, setTheme } = useTheme()
   const [todos, setTodos] = useState([])
   const [text, setText] = useState('')
   const [ready, setReady] = useState(false)
-  const [filePath, setFilePath] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -25,7 +41,6 @@ export default function TodoApp() {
       }
 
       setTodos(loaded)
-      setFilePath(await window.api.getTodosPath())
       setReady(true)
     }
 
@@ -62,20 +77,27 @@ export default function TodoApp() {
 
   if (!ready) {
     return (
-      <div className="todo-app">
-        <p className="todo-empty">Loading…</p>
+      <div className="app-frame">
+        <div className="titlebar-drag" aria-hidden="true" />
+        <div className="app-shell">
+          <p className="app-loading">Loading…</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="todo-app">
-      <header className="todo-header">
-        <h1>Todos</h1>
-        <p className="todo-subtitle">Saved to your Documents folder</p>
-        <button type="button" className="todo-path" onClick={() => window.api.revealTodos()}>
-          {filePath}
-        </button>
+    <div className="app-frame">
+      <div className="titlebar-drag" aria-hidden="true" />
+      <div className="app-shell">
+      <header className="app-toolbar">
+        <div className="app-title-block">
+          <h1>Todos</h1>
+          <p>
+            {remaining} {remaining === 1 ? 'task' : 'tasks'} remaining
+          </p>
+        </div>
+        <ThemeToggle preference={preference} onChange={setTheme} />
       </header>
 
       <form className="todo-form" onSubmit={addTodo}>
@@ -83,8 +105,8 @@ export default function TodoApp() {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="What needs to be done?"
-          aria-label="New todo"
+          placeholder="Add a task…"
+          aria-label="New task"
           autoFocus
         />
         <button type="submit">Add</button>
@@ -102,6 +124,9 @@ export default function TodoApp() {
                     onChange={() => toggleTodo(todo.id)}
                     aria-label={`Mark "${todo.text}" as ${todo.done ? 'incomplete' : 'complete'}`}
                   />
+                  <span className="checkmark">
+                    <CheckIcon />
+                  </span>
                   <span className="todo-text">{todo.text}</span>
                 </label>
                 <button
@@ -116,20 +141,24 @@ export default function TodoApp() {
             ))}
           </ul>
 
-          <footer className="todo-footer">
-            <span>
-              {remaining} {remaining === 1 ? 'item' : 'items'} left
-            </span>
-            {completedCount > 0 && (
-              <button type="button" className="todo-clear" onClick={clearCompleted}>
-                Clear completed
+          <footer className="app-footer">
+            <span>Saved to Documents</span>
+            <div className="footer-actions">
+              {completedCount > 0 && (
+                <button type="button" className="text-button" onClick={clearCompleted}>
+                  Clear completed
+                </button>
+              )}
+              <button type="button" className="text-button" onClick={() => window.api.revealTodos()}>
+                Show in Finder
               </button>
-            )}
+            </div>
           </footer>
         </>
       ) : (
-        <p className="todo-empty">No todos yet. Add one above.</p>
+        <p className="todo-empty-panel">No tasks yet. Add one above.</p>
       )}
+      </div>
     </div>
   )
 }
