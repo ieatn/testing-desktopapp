@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 
-const THEME_KEY = 'theme-preference'
+const LEGACY_THEME_KEY = 'theme-preference'
 
-function readPreference() {
-  const stored = localStorage.getItem(THEME_KEY)
-  if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
-  return 'system'
+function isThemePreference(value) {
+  return value === 'light' || value === 'dark' || value === 'system'
 }
 
 function resolveTheme(preference, systemDark) {
@@ -14,12 +12,30 @@ function resolveTheme(preference, systemDark) {
 }
 
 export function useTheme() {
-  const [preference, setPreference] = useState(readPreference)
+  const [preference, setPreference] = useState('system')
+  const [ready, setReady] = useState(false)
   const [systemDark, setSystemDark] = useState(() =>
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
 
   useEffect(() => {
+    async function loadPreference() {
+      let stored = await window.api.getThemePreference()
+
+      const legacy = localStorage.getItem(LEGACY_THEME_KEY)
+      if (isThemePreference(legacy) && stored === 'system' && legacy !== 'system') {
+        stored = legacy
+        await window.api.setThemePreference(legacy)
+      }
+
+      if (isThemePreference(stored)) {
+        setPreference(stored)
+      }
+
+      setReady(true)
+    }
+
+    loadPreference()
     window.api.getSystemDark().then(setSystemDark)
     return window.api.onSystemThemeChange(setSystemDark)
   }, [])
@@ -27,14 +43,19 @@ export function useTheme() {
   const resolved = resolveTheme(preference, systemDark)
 
   useEffect(() => {
+    if (!ready) return
+
     document.documentElement.setAttribute('data-theme', resolved)
     window.api.setWindowBackground(resolved === 'dark')
-  }, [resolved])
+  }, [resolved, ready])
 
-  function setTheme(next) {
-    localStorage.setItem(THEME_KEY, next)
+  async function setTheme(next) {
+    if (!isThemePreference(next)) return
+
+    localStorage.setItem(LEGACY_THEME_KEY, next)
+    await window.api.setThemePreference(next)
     setPreference(next)
   }
 
-  return { preference, setTheme, resolved }
+  return { preference, setTheme }
 }

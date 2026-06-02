@@ -7,6 +7,8 @@ const api = {
   getTodosPath: () => ipcRenderer.invoke('todos:path'),
   revealTodos: () => ipcRenderer.invoke('todos:reveal'),
   getSystemDark: () => ipcRenderer.invoke('theme:system-dark'),
+  getThemePreference: () => ipcRenderer.invoke('settings:get-theme'),
+  setThemePreference: (theme) => ipcRenderer.invoke('settings:set-theme', theme),
   setWindowBackground: (isDark) => ipcRenderer.invoke('theme:window-bg', isDark),
   onSystemThemeChange: (callback) => {
     const handler = (_, isDark) => callback(isDark)
