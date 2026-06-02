@@ -2,162 +2,195 @@
 
 body {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
+  min-height: 100vh;
+  padding: 48px 24px;
+  background: radial-gradient(ellipse at top, #2a3140 0%, var(--color-background) 55%);
   user-select: none;
 }
 
-code {
-  font-weight: 600;
-  padding: 3px 5px;
-  border-radius: 2px;
-  background-color: var(--color-background-mute);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-  font-size: 85%;
-}
-
 #root {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
+  width: 100%;
+  max-width: 480px;
 }
 
-.logo {
-  margin-bottom: 20px;
-  -webkit-user-drag: none;
-  height: 128px;
-  width: 128px;
-  will-change: filter;
-  transition: filter 300ms;
+.todo-app {
+  background: var(--color-background-soft);
+  border: 1px solid var(--ev-c-gray-3);
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 1.2em #6988e6aa);
-}
-
-.creator {
-  font-size: 14px;
-  line-height: 16px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.text {
+.todo-header h1 {
   font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--ev-c-text-1);
-  font-weight: 700;
-  line-height: 32px;
-  text-align: center;
-  margin: 0 10px;
-  padding: 16px 0;
 }
 
-.tip {
-  font-size: 16px;
-  line-height: 24px;
+.todo-subtitle {
+  margin-top: 4px;
+  font-size: 14px;
   color: var(--ev-c-text-2);
-  font-weight: 600;
 }
 
-.react {
-  background: -webkit-linear-gradient(315deg, #087ea4 55%, #7c93ee);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.actions {
-  display: flex;
-  padding-top: 32px;
-  margin: -6px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.action {
-  flex-shrink: 0;
-  padding: 6px;
-}
-
-.action a {
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  border: 1px solid transparent;
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 20px;
-  padding: 0 20px;
-  line-height: 38px;
-  font-size: 14px;
-  border-color: var(--ev-button-alt-border);
-  color: var(--ev-button-alt-text);
-  background-color: var(--ev-button-alt-bg);
-}
-
-.action a:hover {
-  border-color: var(--ev-button-alt-hover-border);
-  color: var(--ev-button-alt-hover-text);
-  background-color: var(--ev-button-alt-hover-bg);
-}
-
-.versions {
-  position: absolute;
-  bottom: 30px;
-  margin: 0 auto;
-  padding: 15px 0;
-  font-family: 'Menlo', 'Lucida Console', monospace;
-  display: inline-flex;
-  overflow: hidden;
-  align-items: center;
-  border-radius: 22px;
-  background-color: #202127;
-  backdrop-filter: blur(24px);
-}
-
-.versions li {
+.todo-path {
   display: block;
-  float: left;
-  border-right: 1px solid var(--ev-c-gray-1);
-  padding: 0 20px;
+  width: 100%;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ev-c-text-3);
+  cursor: pointer;
+  user-select: text;
+  word-break: break-all;
+}
+
+.todo-path:hover {
+  color: #6988e6;
+  text-decoration: underline;
+}
+
+.todo-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.todo-form input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--ev-c-gray-2);
+  background: var(--color-background-mute);
+  color: var(--ev-c-text-1);
+  font-size: 15px;
+  outline: none;
+  user-select: text;
+}
+
+.todo-form input:focus {
+  border-color: #6988e6;
+}
+
+.todo-form input::placeholder {
+  color: var(--ev-c-text-3);
+}
+
+.todo-form button {
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: #6988e6;
+  color: #fff;
   font-size: 14px;
-  line-height: 14px;
-  opacity: 0.8;
-  &:last-child {
-    border: none;
-  }
+  font-weight: 600;
+  cursor: pointer;
 }
 
-@media (max-width: 720px) {
-  .text {
-    font-size: 20px;
-  }
+.todo-form button:hover {
+  background: #7c93ee;
 }
 
-@media (max-width: 620px) {
-  .versions {
-    display: none;
-  }
+.todo-list {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-@media (max-width: 350px) {
-  .tip,
-  .actions {
-    display: none;
-  }
+.todo-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--color-background-mute);
+  border: 1px solid transparent;
+}
+
+.todo-list li.done {
+  opacity: 0.55;
+}
+
+.todo-check {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.todo-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: #6988e6;
+  cursor: pointer;
+}
+
+.todo-text {
+  font-size: 15px;
+  color: var(--ev-c-text-1);
+  user-select: text;
+}
+
+.todo-list li.done .todo-text {
+  text-decoration: line-through;
+  color: var(--ev-c-text-2);
+}
+
+.todo-delete {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ev-c-text-3);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.todo-delete:hover {
+  background: var(--ev-c-gray-3);
+  color: var(--ev-c-text-1);
+}
+
+.todo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ev-c-gray-3);
+  font-size: 13px;
+  color: var(--ev-c-text-2);
+}
+
+.todo-clear {
+  border: none;
+  background: none;
+  color: var(--ev-c-text-2);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.todo-clear:hover {
+  color: var(--ev-c-text-1);
+}
+
+.todo-empty {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--ev-c-text-3);
 }

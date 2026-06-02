@@ -1,13 +1,20 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+const TODOS_FILENAME = 'todos.json'
+
+function getTodosPath() {
+  return join(app.getPath('documents'), TODOS_FILENAME)
+}
+
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 520,
+    height: 640,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -49,8 +56,36 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('console logged'))
+  ipcMain.handle('todos:load', async () => {
+    try {
+      const data = await readFile(getTodosPath(), 'utf-8')
+      const parsed = JSON.parse(data)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (error) {
+      if (error.code === 'ENOENT') return []
+      throw error
+    }
+  })
+
+  ipcMain.handle('todos:save', async (_, todos) => {
+    await writeFile(getTodosPath(), JSON.stringify(todos, null, 2), 'utf-8')
+  })
+
+  ipcMain.handle('todos:path', () => getTodosPath())
+
+  ipcMain.handle('todos:reveal', async () => {
+    const todosPath = getTodosPath()
+    try {
+      await readFile(todosPath)
+      shell.showItemInFolder(todosPath)
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        await shell.openPath(app.getPath('documents'))
+      } else {
+        throw error
+      }
+    }
+  })
 
   createWindow()
 
