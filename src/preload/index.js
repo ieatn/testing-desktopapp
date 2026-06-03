@@ -14,6 +14,16 @@ const api = {
     const handler = (_, isDark) => callback(isDark)
     ipcRenderer.on('theme:updated', handler)
     return () => ipcRenderer.removeListener('theme:updated', handler)
+  },
+  onThemePreferenceChange: (callback) => {
+    const handler = (_, theme) => callback(theme)
+    ipcRenderer.on('theme:preference-updated', handler)
+    return () => ipcRenderer.removeListener('theme:preference-updated', handler)
+  },
+  onMenuCommand: (callback) => {
+    const handler = (_, command) => callback(command)
+    ipcRenderer.on('menu:command', handler)
+    return () => ipcRenderer.removeListener('menu:command', handler)
   }
 }
 

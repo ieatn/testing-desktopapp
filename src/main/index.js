@@ -4,6 +4,18 @@ import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { APP_NAME, createMenuHandlers, setApplicationMenu } from './menu.js'
+
+if (process.platform === 'darwin') {
+  app.setName(APP_NAME)
+  app.on('will-finish-launching', () => {
+    app.setName(APP_NAME)
+  })
+  app.setAboutPanelOptions({
+    applicationName: APP_NAME,
+    applicationVersion: app.getVersion()
+  })
+}
 
 const TODOS_FILENAME = 'todos.json'
 const SETTINGS_FILENAME = 'settings.json'
@@ -76,6 +88,46 @@ function windowBackground(isDark) {
   return isDark ? '#1c1c1e' : '#f5f5f7'
 }
 
+const WINDOW_GAP = 16
+
+function fitsInWorkArea(bounds, area) {
+  return (
+    bounds.x >= area.x &&
+    bounds.y >= area.y &&
+    bounds.x + bounds.width <= area.x + area.width &&
+    bounds.y + bounds.height <= area.y + area.height
+  )
+}
+
+function placeNewWindowBeside(sourceBounds) {
+  const width = Math.max(400, sourceBounds.width ?? DEFAULT_WINDOW.width)
+  const height = Math.max(480, sourceBounds.height ?? DEFAULT_WINDOW.height)
+  const display = screen.getDisplayMatchingRect(sourceBounds)
+  const area = display.workArea
+
+  const candidates = [
+    { x: sourceBounds.x + sourceBounds.width + WINDOW_GAP, y: sourceBounds.y },
+    { x: sourceBounds.x - width - WINDOW_GAP, y: sourceBounds.y },
+    { x: sourceBounds.x, y: sourceBounds.y + sourceBounds.height + WINDOW_GAP },
+    { x: sourceBounds.x, y: sourceBounds.y - height - WINDOW_GAP }
+  ]
+
+  for (const position of candidates) {
+    const candidate = { width, height, x: position.x, y: position.y }
+    if (fitsInWorkArea(candidate, area)) return candidate
+  }
+
+  return ensureOnScreen({
+    width,
+    height,
+    x: Math.min(
+      sourceBounds.x + sourceBounds.width + WINDOW_GAP,
+      area.x + area.width - width
+    ),
+    y: Math.max(area.y, Math.min(sourceBounds.y, area.y + area.height - height))
+  })
+}
+
 function ensureOnScreen(bounds) {
   const width = Math.max(400, bounds.width ?? DEFAULT_WINDOW.width)
   const height = Math.max(480, bounds.height ?? DEFAULT_WINDOW.height)
@@ -121,6 +173,40 @@ function countRemainingTodos(todos) {
   return todos.filter((todo) => !todo.done).length
 }
 
+function registerTodoKeyboardShortcuts(window) {
+  window.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return
+
+    const mod = input.meta || input.control
+    if (!mod) return
+
+    const key = input.key.toLowerCase()
+
+    if (key === 't') {
+      event.preventDefault()
+      createWindow({ restoreState: false })
+      return
+    }
+
+    if (key === 'n') {
+      event.preventDefault()
+      window.webContents.send('menu:command', 'add-command-n-tasks')
+      return
+    }
+
+    if (key === 'z' && input.shift) {
+      event.preventDefault()
+      window.webContents.send('menu:command', 'redo')
+      return
+    }
+
+    if (key === 'z') {
+      event.preventDefault()
+      window.webContents.send('menu:command', 'undo')
+    }
+  })
+}
+
 function updateDockBadge(remainingCount) {
   if (process.platform === 'darwin') {
     if (!app.dock) return
@@ -133,12 +219,23 @@ function updateDockBadge(remainingCount) {
   }
 }
 
-async function createWindow() {
+async function createWindow({ restoreState = true } = {}) {
   const settings = await loadSettings()
   const isDark = resolveThemeDark(settings.theme)
-  const { isMaximized, ...bounds } = settings.window
+  const { isMaximized, ...savedBounds } = settings.window
 
-  const mainWindow = new BrowserWindow({
+  const openBeside = !restoreState
+  let bounds = savedBounds
+  if (openBeside) {
+    const source = BrowserWindow.getFocusedWindow()
+    if (source && !source.isDestroyed()) {
+      bounds = placeNewWindowBeside(source.getBounds())
+    } else {
+      bounds = ensureOnScreen(savedBounds)
+    }
+  }
+
+  const window = new BrowserWindow({
     ...bounds,
     minWidth: 400,
     minHeight: 480,
@@ -155,28 +252,34 @@ async function createWindow() {
     }
   })
 
-  if (isMaximized) {
-    mainWindow.maximize()
+  if (restoreState && isMaximized) {
+    window.maximize()
   }
 
-  mainWindow.on('close', () => {
-    persistWindowState(mainWindow)
+  window.on('close', () => {
+    persistWindowState(window)
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  window.on('ready-to-show', () => {
+    if (openBeside) {
+      window.showInactive()
+    } else {
+      window.show()
+    }
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    window.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    window.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  return window
 }
 
 app.whenReady().then(async () => {
@@ -184,6 +287,7 @@ app.whenReady().then(async () => {
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+    registerTodoKeyboardShortcuts(window)
   })
 
   ipcMain.handle('todos:load', async () => {
@@ -230,13 +334,43 @@ app.whenReady().then(async () => {
     return settings.theme
   })
 
-  ipcMain.handle('settings:set-theme', async (_, theme) => {
+  async function applyThemePreference(theme) {
     if (theme !== 'light' && theme !== 'dark' && theme !== 'system') return
 
     const settings = await loadSettings()
     settings.theme = theme
     await saveSettings(settings)
+    await broadcastTheme()
+    refreshApplicationMenu()
+  }
+
+  ipcMain.handle('settings:set-theme', async (_, theme) => {
+    await applyThemePreference(theme)
   })
+
+  function refreshApplicationMenu() {
+    const settings = loadSettingsSync()
+    setApplicationMenu({
+      theme: settings.theme,
+      ...createMenuHandlers({
+        revealTodos: async () => {
+          const todosPath = getTodosPath()
+          try {
+            await readFile(todosPath)
+            shell.showItemInFolder(todosPath)
+          } catch (error) {
+            if (error.code === 'ENOENT') {
+              await shell.openPath(app.getPath('documents'))
+            } else {
+              throw error
+            }
+          }
+        },
+        setTheme: applyThemePreference,
+        createNewWindow: () => createWindow({ restoreState: false })
+      })
+    })
+  }
 
   ipcMain.handle('theme:window-bg', (event, isDark) => {
     const window = BrowserWindow.fromWebContents(event.sender)
@@ -250,10 +384,13 @@ app.whenReady().then(async () => {
     BrowserWindow.getAllWindows().forEach((window) => {
       window.setBackgroundColor(windowBackground(isDark))
       window.webContents.send('theme:updated', nativeTheme.shouldUseDarkColors)
+      window.webContents.send('theme:preference-updated', settings.theme)
     })
   }
 
   nativeTheme.on('updated', broadcastTheme)
+
+  refreshApplicationMenu()
 
   app.on('before-quit', () => {
     const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]

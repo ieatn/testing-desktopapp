@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import KeyboardShortcuts from './KeyboardShortcuts'
 import ThemeToggle from './ThemeToggle'
 import { useTheme } from '../hooks/useTheme'
+import { useTodoUndo } from '../hooks/useTodoUndo'
 
 const LEGACY_STORAGE_KEY = 'todos'
 
@@ -20,9 +22,10 @@ function CheckIcon() {
 
 export default function TodoApp() {
   const { preference, setTheme } = useTheme()
-  const [todos, setTodos] = useState([])
+  const { todos, setTodosWithHistory, replaceTodos, undo, redo } = useTodoUndo()
   const [text, setText] = useState('')
   const [ready, setReady] = useState(false)
+  const newTaskInputRef = useRef(null)
 
   useEffect(() => {
     async function load() {
@@ -40,36 +43,68 @@ export default function TodoApp() {
         }
       }
 
-      setTodos(loaded)
+      replaceTodos(loaded)
       setReady(true)
     }
 
     load()
-  }, [])
+  }, [replaceTodos])
 
   useEffect(() => {
     if (!ready) return
     window.api.saveTodos(todos)
   }, [todos, ready])
 
+  function addCommandNTasks() {
+    setTodosWithHistory((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text: 'command n', done: false },
+      { id: crypto.randomUUID(), text: 'command n', done: false },
+      { id: crypto.randomUUID(), text: 'command n', done: false }
+    ])
+  }
+
+  useEffect(() => {
+    return window.api.onMenuCommand((command) => {
+      if (command === 'clear-completed') {
+        setTodosWithHistory((prev) => prev.filter((t) => !t.done))
+        return
+      }
+
+      if (command === 'add-command-n-tasks') {
+        addCommandNTasks()
+        return
+      }
+
+      if (command === 'undo') {
+        undo()
+        return
+      }
+
+      if (command === 'redo') {
+        redo()
+      }
+    })
+  }, [setTodosWithHistory, undo, redo])
+
   function addTodo(event) {
     event.preventDefault()
     const trimmed = text.trim()
     if (!trimmed) return
-    setTodos((prev) => [...prev, { id: crypto.randomUUID(), text: trimmed, done: false }])
+    setTodosWithHistory((prev) => [...prev, { id: crypto.randomUUID(), text: trimmed, done: false }])
     setText('')
   }
 
   function toggleTodo(id) {
-    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
+    setTodosWithHistory((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
   }
 
   function removeTodo(id) {
-    setTodos((prev) => prev.filter((t) => t.id !== id))
+    setTodosWithHistory((prev) => prev.filter((t) => t.id !== id))
   }
 
   function clearCompleted() {
-    setTodos((prev) => prev.filter((t) => !t.done))
+    setTodosWithHistory((prev) => prev.filter((t) => !t.done))
   }
 
   const remaining = todos.filter((t) => !t.done).length
@@ -102,6 +137,7 @@ export default function TodoApp() {
 
       <form className="todo-form" onSubmit={addTodo}>
         <input
+          ref={newTaskInputRef}
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -158,6 +194,8 @@ export default function TodoApp() {
       ) : (
         <p className="todo-empty-panel">No tasks yet. Add one above.</p>
       )}
+
+      <KeyboardShortcuts />
       </div>
     </div>
   )

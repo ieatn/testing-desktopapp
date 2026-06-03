@@ -37,7 +37,18 @@ export function useTheme() {
 
     loadPreference()
     window.api.getSystemDark().then(setSystemDark)
-    return window.api.onSystemThemeChange(setSystemDark)
+    const removeSystemListener = window.api.onSystemThemeChange(setSystemDark)
+    const removePreferenceListener = window.api.onThemePreferenceChange((theme) => {
+      if (isThemePreference(theme)) {
+        setPreference(theme)
+        localStorage.setItem(LEGACY_THEME_KEY, theme)
+      }
+    })
+
+    return () => {
+      removeSystemListener()
+      removePreferenceListener()
+    }
   }, [])
 
   const resolved = resolveTheme(preference, systemDark)
